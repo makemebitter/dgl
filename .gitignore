@@ -1,4 +1,5 @@
 # IDE
+examples/pytorch/graphsage/experimental/datasets/
 .idea
 
 # Byte-compiled / optimized / DLL files

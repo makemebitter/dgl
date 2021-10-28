@@ -432,6 +432,7 @@ def submit_jobs(args, udf_command):
 
     # Get the IP addresses of the cluster.
     ip_config = os.path.join(args.workspace, args.ip_config)
+    print(ip_config)
     with open(ip_config) as f:
         for line in f:
             result = line.strip().split()
@@ -446,8 +447,11 @@ def submit_jobs(args, udf_command):
             else:
                 raise RuntimeError("Format error of ip_config.")
             server_count_per_machine = args.num_servers
+    print("SHITTTTTTTT")
+    print(hosts)
     # Get partition info of the graph data
     part_config = os.path.join(args.workspace, args.part_config)
+    print(part_config)
     with open(part_config) as conf_f:
         part_metadata = json.load(conf_f)
     assert 'num_parts' in part_metadata, 'num_parts does not exist.'
@@ -467,12 +471,14 @@ def submit_jobs(args, udf_command):
         graph_format=args.graph_format,
         pythonpath=os.environ.get("PYTHONPATH", ""),
     )
+    print("server_env_vars", server_env_vars)
     for i in range(len(hosts) * server_count_per_machine):
         ip, _ = hosts[int(i / server_count_per_machine)]
         server_env_vars_cur = f"{server_env_vars} DGL_SERVER_ID={i}"
         cmd = wrap_cmd_with_local_envvars(udf_command, server_env_vars_cur)
         cmd = wrap_cmd_with_extra_envvars(cmd, args.extra_envs) if len(args.extra_envs) > 0 else cmd
         cmd = 'cd ' + str(args.workspace) + '; ' + cmd
+        print("server_env_vars", i, cmd)
         thread_list.append(execute_remote(cmd, ip, args.ssh_port, username=args.ssh_username))
 
     # launch client tasks
@@ -486,6 +492,7 @@ def submit_jobs(args, udf_command):
         num_omp_threads=os.environ.get("OMP_NUM_THREADS", str(args.num_omp_threads)),
         pythonpath=os.environ.get("PYTHONPATH", ""),
     )
+    print("client_env_vars", client_env_vars)
 
     for node_id, host in enumerate(hosts):
         ip, _ = host
@@ -501,6 +508,7 @@ def submit_jobs(args, udf_command):
         cmd = wrap_cmd_with_local_envvars(torch_dist_udf_command, client_env_vars)
         cmd = wrap_cmd_with_extra_envvars(cmd, args.extra_envs) if len(args.extra_envs) > 0 else cmd
         cmd = 'cd ' + str(args.workspace) + '; ' + cmd
+        print("client_env_vars", node_id, host, cmd)
         thread_list.append(execute_remote(cmd, ip, args.ssh_port, username=args.ssh_username))
 
     # Start a cleanup process dedicated for cleaning up remote training jobs.
@@ -579,13 +587,16 @@ def main():
         # where the launch script runs.
         args.num_omp_threads = max(multiprocessing.cpu_count() // 2 // args.num_trainers, 1)
         print('The number of OMP threads per trainer is set to', args.num_omp_threads)
+    
 
     udf_command = str(udf_command[0])
     if 'python' not in udf_command:
         raise RuntimeError("DGL launching script can only support Python executable file.")
+    print(args)
+    print(udf_command)
     submit_jobs(args, udf_command)
 
 if __name__ == '__main__':
     fmt = '%(asctime)s %(levelname)s %(message)s'
-    logging.basicConfig(format=fmt, level=logging.INFO)
+    logging.basicConfig(format=fmt, level=logging.DEBUG)
     main()

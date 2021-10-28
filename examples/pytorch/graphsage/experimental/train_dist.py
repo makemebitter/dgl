@@ -25,7 +25,7 @@ def load_subtensor(g, seeds, input_nodes, device, load_feat=True):
     """
     Copys features and labels of a set of nodes onto GPU.
     """
-    batch_inputs = g.ndata['features'][input_nodes].to(device) if load_feat else None
+    batch_inputs = g.ndata['feat'][input_nodes].to(device) if load_feat else None
     batch_labels = g.ndata['labels'][seeds].to(device)
     return batch_inputs, batch_labels
 
@@ -54,7 +54,7 @@ class NeighborSampler(object):
         seeds = blocks[-1].dstdata[dgl.NID]
         batch_inputs, batch_labels = load_subtensor(self.g, seeds, input_nodes, "cpu", self.load_feat)
         if self.load_feat:
-            blocks[0].srcdata['features'] = batch_inputs
+            blocks[0].srcdata['feat'] = batch_inputs
         blocks[-1].dstdata['labels'] = batch_labels
         return blocks
 
@@ -263,13 +263,13 @@ def main(args):
     if 'trainer_id' in g.ndata:
         train_nid = dgl.distributed.node_split(g.ndata['train_mask'], pb, force_even=True,
                                                node_trainer_ids=g.ndata['trainer_id'])
-        val_nid = dgl.distributed.node_split(g.ndata['val_mask'], pb, force_even=True,
+        val_nid = dgl.distributed.node_split(g.ndata['valid_mask'], pb, force_even=True,
                                              node_trainer_ids=g.ndata['trainer_id'])
         test_nid = dgl.distributed.node_split(g.ndata['test_mask'], pb, force_even=True,
                                               node_trainer_ids=g.ndata['trainer_id'])
     else:
         train_nid = dgl.distributed.node_split(g.ndata['train_mask'], pb, force_even=True)
-        val_nid = dgl.distributed.node_split(g.ndata['val_mask'], pb, force_even=True)
+        val_nid = dgl.distributed.node_split(g.ndata['valid_mask'], pb, force_even=True)
         test_nid = dgl.distributed.node_split(g.ndata['test_mask'], pb, force_even=True)
     local_nid = pb.partid2nids(pb.partid).detach().numpy()
     print('part {}, train: {} (local: {}), val: {} (local: {}), test: {} (local: {})'.format(
