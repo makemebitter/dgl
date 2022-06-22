@@ -447,7 +447,6 @@ def submit_jobs(args, udf_command):
             else:
                 raise RuntimeError("Format error of ip_config.")
             server_count_per_machine = args.num_servers
-    print("SHITTTTTTTT")
     print(hosts)
     # Get partition info of the graph data
     part_config = os.path.join(args.workspace, args.part_config)
